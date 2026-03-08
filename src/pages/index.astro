@@ -1,0 +1,42 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SearchHero from "../components/site/SearchHero.astro";
+import StatsBar from "../components/site/StatsBar.astro";
+import FilterStrip from "../components/site/FilterStrip.astro";
+import NewsletterCard from "../components/site/NewsletterCard.astro";
+import CategoryGrid from "../components/sections/CategoryGrid.astro";
+import FeaturedToolsSection from "../components/sections/FeaturedToolsSection.astro";
+import NewToolsSection from "../components/sections/NewToolsSection.astro";
+import TrendingTopicsSection from "../components/sections/TrendingTopicsSection.astro";
+import { CAT_EMOJI } from "../data/homeConfig";
+import tools from "../data/tools_enriched.json";
+
+const totalTools = tools.length;
+const freeTools = tools.filter((t: any) => t.pricing === "Free").length;
+const categories = [...new Set(tools.map((t: any) => t.cat))].sort();
+const featured = tools.slice(0, 12);
+const newTools = tools.slice(-6).reverse();
+
+const catCounts: Record<string, number> = {};
+for (const t of tools) {
+  catCounts[t.cat] = (catCounts[t.cat] || 0) + 1;
+}
+---
+
+<BaseLayout
+  title={`AI Experts Corner — ${totalTools.toLocaleString()}+ AI Tools Directory`}
+  description={`Discover ${totalTools.toLocaleString()}+ AI tools for marketing, coding, design, automation and more.`}
+>
+  <SearchHero totalTools={totalTools} />
+  <StatsBar
+    totalTools={totalTools}
+    freeTools={freeTools}
+    categoryCount={categories.length}
+  />
+  <FilterStrip />
+  <CategoryGrid categories={categories} counts={catCounts} emojiMap={CAT_EMOJI} />
+  <FeaturedToolsSection tools={featured} totalTools={totalTools} />
+  <NewToolsSection tools={newTools} />
+  <TrendingTopicsSection />
+  <NewsletterCard />
+</BaseLayout>

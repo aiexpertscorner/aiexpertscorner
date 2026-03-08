@@ -1,0 +1,28 @@
+---
+import CategoryCard from "../cards/CategoryCard.astro";
+import SectionHeader from "../site/SectionHeader.astro";
+
+const { categories, counts, emojiMap } = Astro.props;
+---
+
+<section class="section">
+  <div class="container">
+    <SectionHeader
+      title="Browse AI tools by category"
+      subtitle="Start with the highest-value entry points for users and search."
+      linkHref="/tools"
+      linkLabel="Browse all tools"
+    />
+
+    <div class="grid-cats">
+      {categories.map((cat: string) => (
+        <CategoryCard
+          name={cat}
+          count={counts[cat] || 0}
+          emoji={emojiMap?.[cat] || "✦"}
+          href={`/tools/category/${cat.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+        />
+      ))}
+    </div>
+  </div>
+</section>

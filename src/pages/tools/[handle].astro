@@ -1,0 +1,147 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ToolCard from "../../components/cards/ToolCard.astro";
+import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
+import ToolHero from "../../components/site/ToolHero.astro";
+import ToolQuickFacts from "../../components/site/ToolQuickFacts.astro";
+import "../../styles/tool-detail.css";
+import toolsRaw from "../../data/tools_enriched.json";
+
+type Tool = {
+  handle: string;
+  name: string;
+  url: string;
+  short?: string;
+  desc?: string;
+  cat?: string;
+  pricing?: string;
+  tags?: string[];
+  e?: string;
+};
+
+const slugify = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+const tools = toolsRaw as Tool[];
+
+export async function getStaticPaths() {
+  const toolsModule = await import("../../data/tools_enriched.json");
+  const tools = toolsModule.default as Tool[];
+
+  return tools
+    .filter((tool) => tool.handle)
+    .map((tool) => ({
+      params: { handle: tool.handle },
+      props: { tool }
+    }));
+}
+
+const { tool } = Astro.props as { tool: Tool };
+
+const relatedTools = tools
+  .filter((t) => t.handle !== tool.handle && t.cat === tool.cat)
+  .slice(0, 6);
+
+const pageTitle = `${tool.name} — AI Tool Review & Overview`;
+const pageDescription =
+  tool.short ||
+  tool.desc ||
+  `${tool.name} is listed on AI Experts Corner. Explore pricing, category, features and similar alternatives.`;
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: tool.name,
+  applicationCategory: tool.cat || "AI Tool",
+  operatingSystem: "Web",
+  description: tool.short || tool.desc || "",
+  url: `https://aiexpertscorner.com/tools/${tool.handle}`,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    category: tool.pricing || "Unknown"
+  }
+};
+
+const breadcrumbItems = [
+  { label: "Home", href: "/" },
+  { label: "Tools", href: "/tools" },
+  ...(tool.cat
+    ? [{ label: tool.cat, href: `/tools/category/${slugify(tool.cat)}` }]
+    : []),
+  { label: tool.name }
+];
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <Fragment slot="head">
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <link rel="canonical" href={`https://aiexpertscorner.com/tools/${tool.handle}`} />
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+  </Fragment>
+
+  <section class="section">
+    <div class="container">
+      <Breadcrumbs items={breadcrumbItems} />
+
+      <div class="tool-detail-layout">
+        <ToolHero tool={tool} categoryHref={tool.cat ? `/tools/category/${slugify(tool.cat)}` : undefined} />
+        <ToolQuickFacts tool={tool} />
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--soft">
+    <div class="container tool-detail-content">
+      <div class="content-card">
+        <h2>Overview</h2>
+        <p>
+          {tool.name} is part of the AI Experts Corner directory. This page helps users quickly understand
+          what the tool does, how it is categorized, and whether it may fit their workflow.
+        </p>
+        <p>
+          {tool.desc || tool.short || `${tool.name} is an AI tool listed in our directory.`}
+        </p>
+      </div>
+
+      <div class="content-card">
+        <h2>Who should use {tool.name}?</h2>
+        <p>
+          {tool.name} may be relevant for users looking for tools in the
+          <strong> {tool.cat || "AI tools"} </strong>
+          category.
+        </p>
+        <p>
+          Compare it with similar tools below, or browse the full category page to find alternatives.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {relatedTools.length > 0 && (
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <h2>Similar tools</h2>
+            <p>More tools in the same category.</p>
+          </div>
+
+          {tool.cat && (
+            <a href={`/tools/category/${slugify(tool.cat)}`} class="section-link">
+              View category
+            </a>
+          )}
+        </div>
+
+        <div class="grid-tools">
+          {relatedTools.map((related) => (
+            <ToolCard tool={related} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+</BaseLayout>

@@ -1,0 +1,17 @@
+---
+interface Props {
+  name: string;
+  count: number;
+  emoji?: string;
+  href: string;
+}
+
+const { name, count, emoji = "✦", href } = Astro.props;
+---
+
+<a href={href} class="cat-card">
+  <div class="cat-card__icon">{emoji}</div>
+  <span class="cat-card__count">{count.toLocaleString()}</span>
+  <span class="cat-card__name">{name}</span>
+  <span class="cat-card__meta">Explore category</span>
+</a>

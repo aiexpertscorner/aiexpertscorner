@@ -1,0 +1,21 @@
+---
+import ToolCard from "../cards/ToolCard.astro";
+import SectionHeader from "../site/SectionHeader.astro";
+
+const { tools, totalTools } = Astro.props;
+---
+
+<section class="section section--panel">
+  <div class="container">
+    <SectionHeader
+      title="Featured AI tools"
+      subtitle="Hand-picked tools with strong discovery and monetization potential."
+      linkHref="/tools"
+      linkLabel={`Browse all ${totalTools.toLocaleString()} tools`}
+    />
+
+    <div class="grid-tools">
+      {tools.map((tool: any) => <ToolCard tool={tool} />)}
+    </div>
+  </div>
+</section>

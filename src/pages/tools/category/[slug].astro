@@ -1,0 +1,99 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import ToolCard from "../../../components/cards/ToolCard.astro";
+import Breadcrumbs from "../../../components/site/Breadcrumbs.astro";
+import CategoryHero from "../../../components/site/CategoryHero.astro";
+import "../../../styles/category-detail.css";
+import toolsRaw from "../../../data/tools_enriched.json";
+
+type Tool = {
+  handle: string;
+  name: string;
+  url: string;
+  short?: string;
+  desc?: string;
+  cat?: string;
+  pricing?: string;
+  tags?: string[];
+  e?: string;
+};
+
+const tools = toolsRaw as Tool[];
+
+const slugify = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+export async function getStaticPaths() {
+  const toolsModule = await import("../../../data/tools_enriched.json");
+  const tools = toolsModule.default as Tool[];
+
+  const slugify = (value: string) =>
+    value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  const categories = [...new Set(tools.map((t) => t.cat).filter(Boolean) as string[])];
+
+  return categories.map((category) => ({
+    params: { slug: slugify(category) },
+    props: { category }
+  }));
+}
+
+const { category } = Astro.props as { category: string };
+
+const categoryTools = tools.filter((tool) => tool.cat === category);
+
+const pageTitle = `${category} AI Tools — AI Experts Corner`;
+const pageDescription = `Browse ${categoryTools.length.toLocaleString()} ${category} AI tools. Compare tools, pricing and categories in the AI Experts Corner directory.`;
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: `${category} AI Tools`,
+  description: pageDescription,
+  url: `https://aiexpertscorner.com/tools/category/${slugify(category)}`,
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: categoryTools.length
+  }
+};
+
+const breadcrumbItems = [
+  { label: "Home", href: "/" },
+  { label: "Tools", href: "/tools" },
+  { label: category }
+];
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <Fragment slot="head">
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <link rel="canonical" href={`https://aiexpertscorner.com/tools/category/${slugify(category)}`} />
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+  </Fragment>
+
+  <section class="section">
+    <div class="container">
+      <Breadcrumbs items={breadcrumbItems} />
+      <CategoryHero category={category} toolCount={categoryTools.length} />
+    </div>
+  </section>
+
+  <section class="section section--soft">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2>{category} tools</h2>
+          <p>Explore every tool currently mapped to this category.</p>
+        </div>
+        <a href="/tools" class="section-link">Back to all tools</a>
+      </div>
+
+      <div class="grid-tools">
+        {categoryTools.map((tool) => (
+          <ToolCard tool={tool} />
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

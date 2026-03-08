@@ -1,0 +1,45 @@
+---
+interface Props {
+  totalTools: number;
+}
+
+const { totalTools } = Astro.props;
+---
+
+<section class="hero">
+  <div class="container">
+    <div class="hero__panel">
+      <div class="hero__badge">
+        Updated daily · {totalTools.toLocaleString()} tools indexed
+      </div>
+
+      <h1 class="hero__title">
+        Find the <span>best AI tools</span><br />
+        for real work
+      </h1>
+
+      <p class="hero__sub">
+        Explore AI tools for marketing, design, coding, automation, productivity and more.
+        Built to help users discover the right tools fast.
+      </p>
+
+      <div class="hero__actions">
+        <a href="/tools" class="btn btn--primary">Browse all tools</a>
+        <a href="/submit" class="btn btn--secondary">Submit a tool</a>
+      </div>
+
+      <div class="searchbar">
+        <span>⌕</span>
+        <input type="text" placeholder={`Search ${totalTools.toLocaleString()}+ AI tools...`} />
+        <span class="searchbar__kbd">⌘K</span>
+      </div>
+
+      <div class="quick-links">
+        <a href="/best/ai-tools-for-marketing">Best AI tools for marketing</a>
+        <a href="/best/ai-tools-for-students">AI tools for students</a>
+        <a href="/alternatives/chatgpt">ChatGPT alternatives</a>
+        <a href="/tools/compare/chatgpt-vs-claude">ChatGPT vs Claude</a>
+      </div>
+    </div>
+  </div>
+</section>

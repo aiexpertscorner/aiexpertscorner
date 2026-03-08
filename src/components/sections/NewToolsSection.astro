@@ -1,0 +1,21 @@
+---
+import ToolRow from "../cards/ToolRow.astro";
+import SectionHeader from "../site/SectionHeader.astro";
+
+const { tools } = Astro.props;
+---
+
+<section class="section">
+  <div class="container">
+    <SectionHeader
+      title="Recently added"
+      subtitle="Fresh additions to keep the homepage current and crawlable."
+      linkHref="/tools?sort=new"
+      linkLabel="See all new tools"
+    />
+
+    <div class="list-rows">
+      {tools.map((tool: any) => <ToolRow tool={tool} />)}
+    </div>
+  </div>
+</section>

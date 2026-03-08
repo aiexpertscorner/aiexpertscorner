@@ -1,0 +1,22 @@
+---
+import TopicCard from "../cards/TopicCard.astro";
+import SectionHeader from "../site/SectionHeader.astro";
+---
+
+<section class="section section--soft">
+  <div class="container">
+    <SectionHeader
+      title="Trending topics"
+      subtitle="Trending AI topics"
+    />
+
+    <div class="grid-topics">
+      <TopicCard href="/agents" icon="🕹️" title="AI Agents" text="Autonomous tools that can complete multi-step tasks." label="Trending #1" />
+      <TopicCard href="/best/ai-tools-for-video-editing" icon="🎬" title="AI Video" text="Runway, Pika, editing tools and text-to-video." label="Creative Tools" />
+      <TopicCard href="/prompts" icon="⚡" title="Prompt Engineering" text="Find better prompts for better output quality." label="Custom AI prompts" />
+      <TopicCard href="/best/ai-tools-for-privacy" icon="🔒" title="Private AI" text="Offline tools, local models and secure workflows." label="Go Local" />
+      <TopicCard href="/guides" icon="📚" title="Guides" text="Tutorials, workflows & beginner-friendly explanations." label="Learn on the go" />
+      <TopicCard href="/news" icon="📰" title="AI News" text="Fresh updates on the latest news in the AI universe." label="Updated often" />
+    </div>
+  </div>
+</section>

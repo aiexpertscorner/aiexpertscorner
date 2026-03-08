@@ -1,0 +1,511 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ToolsHero from "../../components/site/ToolsHero.astro";
+import ToolsFilters from "../../components/site/ToolsFilters.astro";
+import ToolsToolbar from "../../components/site/ToolsToolbar.astro";
+import Pagination from "../../components/site/Pagination.astro";
+import FeaturedToolsRail from "../../components/sections/FeaturedToolsRail.astro";
+import "../../styles/tools-index.css";
+import toolsRaw from "../../data/tools_enriched.json";
+
+type Tool = {
+  handle: string;
+  name: string;
+  url: string;
+  short?: string;
+  desc?: string;
+  cat?: string;
+  pricing?: string;
+  tags?: string[];
+  e?: string;
+};
+
+const tools = toolsRaw as Tool[];
+
+const totalTools = tools.length;
+const categories = [...new Set(tools.map((t) => t.cat).filter(Boolean) as string[])].sort();
+
+const catCounts: Record<string, number> = {};
+for (const tool of tools) {
+  const cat = tool.cat || "Other";
+  catCounts[cat] = (catCounts[cat] || 0) + 1;
+}
+
+const featured = tools.filter((t) => t.name && t.handle).slice(0, 10);
+
+const pricingCounts = {
+  all: totalTools,
+  free: tools.filter((t) => (t.pricing || "").toLowerCase() === "free").length,
+  freemium: tools.filter((t) => (t.pricing || "").toLowerCase() === "freemium").length,
+  paid: tools.filter((t) => (t.pricing || "").toLowerCase() === "paid").length,
+  unknown: tools.filter((t) => !t.pricing || (t.pricing || "").toLowerCase() === "unknown").length,
+};
+
+const clientTools = tools.map((t, index) => ({
+  handle: t.handle,
+  name: t.name,
+  url: t.url,
+  short: t.short || t.desc || "",
+  desc: t.desc || t.short || "",
+  cat: t.cat || "Other",
+  pricing: t.pricing || "Unknown",
+  tags: (t.tags || []).slice(0, 4),
+  e: t.e || "✦",
+  idx: index,
+}));
+
+const pageTitle = `All AI Tools — ${totalTools.toLocaleString()} Tools Directory`;
+const pageDescription = `Browse ${totalTools.toLocaleString()} AI tools by category, pricing and use case. Search the directory, compare tools and discover the best AI products for every workflow.`;
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "AI Tools Directory",
+  description: pageDescription,
+  url: "https://aiexpertscorner.com/tools",
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: totalTools,
+  },
+};
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <Fragment slot="head">
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://aiexpertscorner.com/tools" />
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+  </Fragment>
+
+  <ToolsHero
+    totalTools={totalTools}
+    categoryCount={categories.length}
+    freeCount={pricingCounts.free}
+    freemiumCount={pricingCounts.freemium}
+  />
+
+  <FeaturedToolsRail tools={featured} />
+
+  <section class="section">
+    <div class="container tools-index-shell">
+      <ToolsFilters
+        totalTools={totalTools}
+        categories={categories}
+        catCounts={catCounts}
+        pricingCounts={pricingCounts}
+      />
+
+      <div class="tools-main">
+        <ToolsToolbar />
+
+        <div id="tools-grid" class="tools-grid-live" aria-live="polite"></div>
+
+        <div id="empty-state" class="empty-state" hidden>
+          <h3>No tools found</h3>
+          <p>Try a different search term, remove filters or reset the page.</p>
+        </div>
+
+        <Pagination />
+      </div>
+    </div>
+  </section>
+
+  <script
+    type="application/json"
+    id="tools-index-data"
+    set:html={JSON.stringify(clientTools)}
+  ></script>
+
+  <script>
+    const tools = JSON.parse(document.getElementById("tools-index-data").textContent || "[]");
+
+    const els = {
+      search: document.getElementById("tools-search-input"),
+      category: document.getElementById("category-filter"),
+      pricing: document.getElementById("pricing-filter"),
+      sort: document.getElementById("sort-filter"),
+      perPage: document.getElementById("per-page-filter"),
+      reset: document.getElementById("filters-reset"),
+      grid: document.getElementById("tools-grid"),
+      summary: document.getElementById("results-summary"),
+      activeFilters: document.getElementById("active-filters"),
+      pagination: document.getElementById("pagination"),
+      paginationInfo: document.getElementById("pagination-info"),
+      emptyState: document.getElementById("empty-state"),
+      pagefindStatus: document.getElementById("pagefind-status"),
+      pricingChips: document.querySelectorAll("[data-pricing-chip]"),
+      categoryChips: document.querySelectorAll("[data-category-chip]"),
+    };
+
+    const state = {
+      query: "",
+      category: "all",
+      pricing: "all",
+      sort: "relevance",
+      perPage: 36,
+      page: 1,
+      searchHandles: null,
+      pagefindFailed: false,
+      pagefindModule: null,
+    };
+
+    let searchDebounce;
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function pricingClass(value) {
+      const v = String(value || "unknown").toLowerCase();
+      if (v === "free") return "badge--free";
+      if (v === "freemium") return "badge--freemium";
+      if (v === "paid") return "badge--paid";
+      return "badge--tag";
+    }
+
+    function toolCardMarkup(tool) {
+      let domain = "";
+      try {
+        domain = new URL(tool.url).hostname.replace("www.", "");
+      } catch {}
+
+      const tags = (tool.tags || [])
+        .slice(0, 2)
+        .map((tag) => `<span class="badge badge--tag">${escapeHtml(tag)}</span>`)
+        .join("");
+
+      return `
+        <a href="/tools/${escapeHtml(tool.handle)}" class="tool-live-card">
+          <div class="tool-live-card__logo">
+            ${
+              domain
+                ? `<img src="https://logo.clearbit.com/${escapeHtml(domain)}"
+                    alt="${escapeHtml(tool.name)}"
+                    loading="lazy"
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />`
+                : ""
+            }
+            <span class="tool-live-card__fallback" ${domain ? 'style="display:none"' : ""}>${escapeHtml(tool.e || "✦")}</span>
+          </div>
+
+          <div class="tool-live-card__body">
+            <h3>${escapeHtml(tool.name)}</h3>
+            <p>${escapeHtml(tool.short || tool.desc || "")}</p>
+
+            <div class="badges">
+              <span class="badge ${pricingClass(tool.pricing)}">${escapeHtml(tool.pricing || "Unknown")}</span>
+              <span class="badge badge--tag">${escapeHtml(tool.cat || "Other")}</span>
+              ${tags}
+            </div>
+          </div>
+        </a>
+      `;
+    }
+
+    function getLocalSearchMatches(query) {
+      const q = query.toLowerCase().trim();
+      if (!q) return null;
+
+      const terms = q.split(/\s+/).filter(Boolean);
+
+      return new Set(
+        tools
+          .filter((tool) => {
+            const haystack = [
+              tool.name,
+              tool.short,
+              tool.desc,
+              tool.cat,
+              ...(tool.tags || []),
+              tool.pricing,
+            ]
+              .join(" ")
+              .toLowerCase();
+
+            return terms.every((term) => haystack.includes(term));
+          })
+          .map((tool) => tool.handle)
+      );
+    }
+
+    async function ensurePagefind() {
+      if (state.pagefindModule || state.pagefindFailed) return state.pagefindModule;
+
+      try {
+        state.pagefindModule = await import("/pagefind/pagefind.js");
+        return state.pagefindModule;
+      } catch {
+        state.pagefindFailed = true;
+        return null;
+      }
+    }
+
+    async function runPagefindSearch(query) {
+      const module = await ensurePagefind();
+      if (!module || !query || query.trim().length < 2) return null;
+
+      try {
+        const search = await module.search(query);
+        const handles = new Set();
+
+        for (const result of search.results.slice(0, 200)) {
+          const data = await result.data();
+          const url = data?.url || "";
+          const match = url.match(/\/tools\/([^/]+)\/?$/);
+          if (match?.[1]) handles.add(match[1]);
+        }
+
+        if (els.pagefindStatus) {
+          els.pagefindStatus.hidden = false;
+          els.pagefindStatus.textContent = handles.size
+            ? "Search powered by Pagefind"
+            : "No Pagefind results — fallback search used";
+        }
+
+        return handles.size ? handles : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function applyFilters(list) {
+      return list.filter((tool) => {
+        if (state.category !== "all" && tool.cat !== state.category) return false;
+        if (state.pricing !== "all" && String(tool.pricing || "unknown").toLowerCase() !== state.pricing) return false;
+        if (state.searchHandles && !state.searchHandles.has(tool.handle)) return false;
+        return true;
+      });
+    }
+
+    function sortResults(list) {
+      const arr = [...list];
+
+      if (state.sort === "name-asc") {
+        arr.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (state.sort === "name-desc") {
+        arr.sort((a, b) => b.name.localeCompare(a.name));
+      } else if (state.sort === "free-first") {
+        arr.sort((a, b) => {
+          const aFree = String(a.pricing || "").toLowerCase() === "free" ? 1 : 0;
+          const bFree = String(b.pricing || "").toLowerCase() === "free" ? 1 : 0;
+          if (aFree !== bFree) return bFree - aFree;
+          return a.name.localeCompare(b.name);
+        });
+      } else if (state.sort === "newest") {
+        arr.sort((a, b) => b.idx - a.idx);
+      } else if (state.sort === "oldest") {
+        arr.sort((a, b) => a.idx - b.idx);
+      } else {
+        arr.sort((a, b) => a.idx - b.idx);
+      }
+
+      return arr;
+    }
+
+    function buildActiveFilters() {
+      const chips = [];
+
+      if (state.query) chips.push({ type: "query", label: `Search: ${state.query}` });
+      if (state.category !== "all") chips.push({ type: "category", label: state.category });
+      if (state.pricing !== "all") chips.push({ type: "pricing", label: `Pricing: ${state.pricing}` });
+
+      els.activeFilters.innerHTML = chips
+        .map(
+          (chip) => `
+            <button class="active-filter-chip" data-remove-filter="${chip.type}">
+              ${escapeHtml(chip.label)} <span>×</span>
+            </button>
+          `
+        )
+        .join("");
+
+      els.activeFilters.querySelectorAll("[data-remove-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const type = btn.getAttribute("data-remove-filter");
+          if (type === "query") {
+            state.query = "";
+            els.search.value = "";
+            state.searchHandles = null;
+          }
+          if (type === "category") {
+            state.category = "all";
+            els.category.value = "all";
+          }
+          if (type === "pricing") {
+            state.pricing = "all";
+            els.pricing.value = "all";
+          }
+          state.page = 1;
+          render();
+        });
+      });
+    }
+
+    function buildPagination(totalPages) {
+      if (totalPages <= 1) {
+        els.pagination.innerHTML = "";
+        return;
+      }
+
+      const current = state.page;
+      const pages = [];
+
+      pages.push(1);
+      for (let i = current - 2; i <= current + 2; i++) {
+        if (i > 1 && i < totalPages) pages.push(i);
+      }
+      if (totalPages > 1) pages.push(totalPages);
+
+      const unique = [...new Set(pages)].sort((a, b) => a - b);
+
+      let html = `<button class="page-btn" data-page="${Math.max(1, current - 1)}" ${current === 1 ? "disabled" : ""}>Prev</button>`;
+
+      unique.forEach((page, index) => {
+        if (index > 0 && page - unique[index - 1] > 1) {
+          html += `<span class="page-ellipsis">…</span>`;
+        }
+
+        html += `<button class="page-btn ${page === current ? "is-active" : ""}" data-page="${page}">${page}</button>`;
+      });
+
+      html += `<button class="page-btn" data-page="${Math.min(totalPages, current + 1)}" ${current === totalPages ? "disabled" : ""}>Next</button>`;
+
+      els.pagination.innerHTML = html;
+
+      els.pagination.querySelectorAll("[data-page]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const nextPage = Number(btn.getAttribute("data-page"));
+          if (!Number.isNaN(nextPage)) {
+            state.page = nextPage;
+            render(false);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+        });
+      });
+    }
+
+    function render() {
+      const filtered = applyFilters(tools);
+      const sorted = sortResults(filtered);
+
+      const total = sorted.length;
+      const perPage = Number(state.perPage) || 36;
+      const totalPages = Math.max(1, Math.ceil(total / perPage));
+      if (state.page > totalPages) state.page = totalPages;
+
+      const start = (state.page - 1) * perPage;
+      const end = start + perPage;
+      const paged = sorted.slice(start, end);
+
+      els.grid.innerHTML = paged.map(toolCardMarkup).join("");
+      els.emptyState.hidden = total !== 0;
+      els.grid.hidden = total === 0;
+
+      const rangeStart = total === 0 ? 0 : start + 1;
+      const rangeEnd = Math.min(end, total);
+
+      els.summary.textContent = total === tools.length
+        ? `Showing all ${total.toLocaleString()} tools`
+        : `Showing ${rangeStart.toLocaleString()}–${rangeEnd.toLocaleString()} of ${total.toLocaleString()} matching tools`;
+
+      els.paginationInfo.textContent = total === 0
+        ? "No results"
+        : `Page ${state.page} of ${totalPages} · ${total.toLocaleString()} results`;
+
+      buildActiveFilters();
+      buildPagination(totalPages);
+    }
+
+    async function handleSearch() {
+      const query = els.search.value.trim();
+      state.query = query;
+      state.page = 1;
+
+      if (!query) {
+        state.searchHandles = null;
+        if (els.pagefindStatus) els.pagefindStatus.hidden = true;
+        render();
+        return;
+      }
+
+      const pagefindMatches = await runPagefindSearch(query);
+      state.searchHandles = pagefindMatches || getLocalSearchMatches(query);
+      render();
+    }
+
+    els.search.addEventListener("input", () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(handleSearch, 180);
+    });
+
+    els.category.addEventListener("change", () => {
+      state.category = els.category.value;
+      state.page = 1;
+      render();
+    });
+
+    els.pricing.addEventListener("change", () => {
+      state.pricing = els.pricing.value;
+      state.page = 1;
+      render();
+    });
+
+    els.sort.addEventListener("change", () => {
+      state.sort = els.sort.value;
+      state.page = 1;
+      render();
+    });
+
+    els.perPage.addEventListener("change", () => {
+      state.perPage = Number(els.perPage.value);
+      state.page = 1;
+      render();
+    });
+
+    els.reset.addEventListener("click", () => {
+      state.query = "";
+      state.category = "all";
+      state.pricing = "all";
+      state.sort = "relevance";
+      state.perPage = 36;
+      state.page = 1;
+      state.searchHandles = null;
+
+      els.search.value = "";
+      els.category.value = "all";
+      els.pricing.value = "all";
+      els.sort.value = "relevance";
+      els.perPage.value = "36";
+
+      if (els.pagefindStatus) els.pagefindStatus.hidden = true;
+      render();
+    });
+
+    els.pricingChips.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.pricing = btn.getAttribute("data-pricing-chip") || "all";
+        els.pricing.value = state.pricing;
+        state.page = 1;
+        render();
+      });
+    });
+
+    els.categoryChips.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.category = btn.getAttribute("data-category-chip") || "all";
+        els.category.value = state.category;
+        state.page = 1;
+        render();
+      });
+    });
+
+    render();
+  </script>
+</BaseLayout>

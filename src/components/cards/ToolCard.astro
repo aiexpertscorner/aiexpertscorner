@@ -1,0 +1,35 @@
+---
+const { tool } = Astro.props;
+
+let domain = "";
+try {
+  domain = new URL(tool.url).hostname.replace("www.", "");
+} catch {}
+const pricingClass = (tool.pricing || "Unknown").toLowerCase();
+---
+
+<a href={`/tools/${tool.handle}`} class="tool-card">
+  <div class="tool-card__logo">
+    <img
+      src={`https://logo.clearbit.com/${domain}`}
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+      alt={tool.name}
+      width="48"
+      height="48"
+      loading="lazy"
+    />
+    <span class="tool-card__fallback">{tool.e || "✦"}</span>
+  </div>
+
+  <div class="tool-card__body">
+    <h3>{tool.name}</h3>
+    <p>{tool.short || tool.desc}</p>
+
+    <div class="badges">
+      <span class={`badge badge--${pricingClass}`}>{tool.pricing || "Unknown"}</span>
+      {tool.tags?.slice(0, 2).map((tag: string) => (
+        <span class="badge badge--tag">{tag}</span>
+      ))}
+    </div>
+  </div>
+</a>

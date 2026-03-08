@@ -1,0 +1,121 @@
+.breadcrumbs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.breadcrumbs a {
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.breadcrumbs a:hover {
+  color: var(--text);
+}
+
+.breadcrumbs__sep {
+  color: var(--muted);
+}
+
+.tool-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.tool-hero-card {
+  display: flex;
+  gap: 20px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+  padding: 28px;
+}
+
+.tool-hero-card__icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: var(--surface2);
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.tool-hero-card__eyebrow {
+  color: var(--accent);
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.tool-hero-card__content h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.tool-hero-card__lead {
+  margin: 14px 0 18px;
+  color: var(--muted);
+  font-size: 1.02rem;
+  max-width: 760px;
+}
+
+.tool-hero-card__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.tool-facts-card,
+.content-card {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+  padding: 24px;
+}
+
+.tool-facts-card h3,
+.content-card h2 {
+  margin-top: 0;
+  font-family: var(--font-heading);
+}
+
+.tool-facts-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tool-facts-card li {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  color: var(--muted);
+}
+
+.tool-facts-card li:last-child {
+  border-bottom: none;
+}
+
+.tool-detail-content {
+  display: grid;
+  gap: 18px;
+}
+
+@media (max-width: 960px) {
+  .tool-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-hero-card {
+    flex-direction: column;
+  }
+}

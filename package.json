@@ -1,0 +1,19 @@
+{
+  "name": "aiexpertscorner",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "npm run prep:seo && astro build",
+    "preview": "astro preview",
+    "prep:seo": "node scripts/build-seo-datasets.mjs",
+    "routes": "powershell -ExecutionPolicy Bypass -File .\\scripts\\show-routes.ps1"
+  },
+  "dependencies": {
+    "@astrojs/tailwind": "^6.0.2",
+    "astro": "^4.0.0",
+    "astro-pagefind": "^1.8.5",
+    "tailwindcss": "^3.4.19"
+  }
+}
