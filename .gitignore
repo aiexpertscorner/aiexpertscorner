@@ -1,5 +1,13 @@
 node_modules/
 dist/
-.env
 .astro/
+.env
+.env.*
 *.log
+
+.DS_Store
+Thumbs.db
+
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
