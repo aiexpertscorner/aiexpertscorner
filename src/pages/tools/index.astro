@@ -6,6 +6,7 @@ import ToolsToolbar from "../../components/site/ToolsToolbar.astro";
 import Pagination from "../../components/site/Pagination.astro";
 import FeaturedToolsRail from "../../components/sections/FeaturedToolsRail.astro";
 import "../../styles/tools-index.css";
+
 import toolsRaw from "../../data/tools_enriched.json";
 
 type Tool = {
@@ -23,6 +24,7 @@ type Tool = {
 const tools = toolsRaw as Tool[];
 
 const totalTools = tools.length;
+
 const categories = [...new Set(tools.map((t) => t.cat).filter(Boolean) as string[])].sort();
 
 const catCounts: Record<string, number> = {};
@@ -31,8 +33,6 @@ for (const tool of tools) {
   catCounts[cat] = (catCounts[cat] || 0) + 1;
 }
 
-const featured = tools.filter((t) => t.name && t.handle).slice(0, 10);
-
 const pricingCounts = {
   all: totalTools,
   free: tools.filter((t) => (t.pricing || "").toLowerCase() === "free").length,
@@ -40,6 +40,10 @@ const pricingCounts = {
   paid: tools.filter((t) => (t.pricing || "").toLowerCase() === "paid").length,
   unknown: tools.filter((t) => !t.pricing || (t.pricing || "").toLowerCase() === "unknown").length,
 };
+
+const featured = tools
+  .filter((t) => t.name && t.handle)
+  .slice(0, 10);
 
 const clientTools = tools.map((t, index) => ({
   handle: t.handle,
@@ -65,8 +69,8 @@ const structuredData = {
   url: "https://aiexpertscorner.com/tools",
   mainEntity: {
     "@type": "ItemList",
-    numberOfItems: totalTools,
-  },
+    numberOfItems: totalTools
+  }
 };
 ---
 
@@ -119,7 +123,9 @@ const structuredData = {
   ></script>
 
   <script>
-    const tools = JSON.parse(document.getElementById("tools-index-data").textContent || "[]");
+    const tools = JSON.parse(
+      document.getElementById("tools-index-data")?.textContent || "[]"
+    );
 
     const els = {
       search: document.getElementById("tools-search-input"),
@@ -134,7 +140,6 @@ const structuredData = {
       pagination: document.getElementById("pagination"),
       paginationInfo: document.getElementById("pagination-info"),
       emptyState: document.getElementById("empty-state"),
-      pagefindStatus: document.getElementById("pagefind-status"),
       pricingChips: document.querySelectorAll("[data-pricing-chip]"),
       categoryChips: document.querySelectorAll("[data-category-chip]"),
     };
@@ -147,8 +152,6 @@ const structuredData = {
       perPage: 36,
       page: 1,
       searchHandles: null,
-      pagefindFailed: false,
-      pagefindModule: null,
     };
 
     let searchDebounce;
@@ -186,13 +189,17 @@ const structuredData = {
           <div class="tool-live-card__logo">
             ${
               domain
-                ? `<img src="https://logo.clearbit.com/${escapeHtml(domain)}"
+                ? `<img
+                    src="https://logo.clearbit.com/${escapeHtml(domain)}"
                     alt="${escapeHtml(tool.name)}"
                     loading="lazy"
-                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />`
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                  />`
                 : ""
             }
-            <span class="tool-live-card__fallback" ${domain ? 'style="display:none"' : ""}>${escapeHtml(tool.e || "✦")}</span>
+            <span class="tool-live-card__fallback" ${domain ? 'style="display:none"' : ""}>
+              ${escapeHtml(tool.e || "✦")}
+            </span>
           </div>
 
           <div class="tool-live-card__body">
@@ -235,50 +242,15 @@ const structuredData = {
       );
     }
 
-    async function ensurePagefind() {
-      if (state.pagefindModule || state.pagefindFailed) return state.pagefindModule;
-
-      try {
-        state.pagefindModule = await import("/pagefind/pagefind.js");
-        return state.pagefindModule;
-      } catch {
-        state.pagefindFailed = true;
-        return null;
-      }
-    }
-
-    async function runPagefindSearch(query) {
-      const module = await ensurePagefind();
-      if (!module || !query || query.trim().length < 2) return null;
-
-      try {
-        const search = await module.search(query);
-        const handles = new Set();
-
-        for (const result of search.results.slice(0, 200)) {
-          const data = await result.data();
-          const url = data?.url || "";
-          const match = url.match(/\/tools\/([^/]+)\/?$/);
-          if (match?.[1]) handles.add(match[1]);
-        }
-
-        if (els.pagefindStatus) {
-          els.pagefindStatus.hidden = false;
-          els.pagefindStatus.textContent = handles.size
-            ? "Search powered by Pagefind"
-            : "No Pagefind results — fallback search used";
-        }
-
-        return handles.size ? handles : null;
-      } catch {
-        return null;
-      }
-    }
-
     function applyFilters(list) {
       return list.filter((tool) => {
         if (state.category !== "all" && tool.cat !== state.category) return false;
-        if (state.pricing !== "all" && String(tool.pricing || "unknown").toLowerCase() !== state.pricing) return false;
+        if (
+          state.pricing !== "all" &&
+          String(tool.pricing || "unknown").toLowerCase() !== state.pricing
+        ) {
+          return false;
+        }
         if (state.searchHandles && !state.searchHandles.has(tool.handle)) return false;
         return true;
       });
@@ -316,6 +288,8 @@ const structuredData = {
       if (state.category !== "all") chips.push({ type: "category", label: state.category });
       if (state.pricing !== "all") chips.push({ type: "pricing", label: `Pricing: ${state.pricing}` });
 
+      if (!els.activeFilters) return;
+
       els.activeFilters.innerHTML = chips
         .map(
           (chip) => `
@@ -329,19 +303,23 @@ const structuredData = {
       els.activeFilters.querySelectorAll("[data-remove-filter]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const type = btn.getAttribute("data-remove-filter");
-          if (type === "query") {
+
+          if (type === "query" && els.search) {
             state.query = "";
             els.search.value = "";
             state.searchHandles = null;
           }
-          if (type === "category") {
+
+          if (type === "category" && els.category) {
             state.category = "all";
             els.category.value = "all";
           }
-          if (type === "pricing") {
+
+          if (type === "pricing" && els.pricing) {
             state.pricing = "all";
             els.pricing.value = "all";
           }
+
           state.page = 1;
           render();
         });
@@ -349,6 +327,8 @@ const structuredData = {
     }
 
     function buildPagination(totalPages) {
+      if (!els.pagination) return;
+
       if (totalPages <= 1) {
         els.pagination.innerHTML = "";
         return;
@@ -384,7 +364,7 @@ const structuredData = {
           const nextPage = Number(btn.getAttribute("data-page"));
           if (!Number.isNaN(nextPage)) {
             state.page = nextPage;
-            render(false);
+            render();
             window.scrollTo({ top: 0, behavior: "smooth" });
           }
         });
@@ -404,94 +384,111 @@ const structuredData = {
       const end = start + perPage;
       const paged = sorted.slice(start, end);
 
-      els.grid.innerHTML = paged.map(toolCardMarkup).join("");
-      els.emptyState.hidden = total !== 0;
-      els.grid.hidden = total === 0;
+      if (els.grid) els.grid.innerHTML = paged.map(toolCardMarkup).join("");
+      if (els.emptyState) els.emptyState.hidden = total !== 0;
+      if (els.grid) els.grid.hidden = total === 0;
 
       const rangeStart = total === 0 ? 0 : start + 1;
       const rangeEnd = Math.min(end, total);
 
-      els.summary.textContent = total === tools.length
-        ? `Showing all ${total.toLocaleString()} tools`
-        : `Showing ${rangeStart.toLocaleString()}–${rangeEnd.toLocaleString()} of ${total.toLocaleString()} matching tools`;
+      if (els.summary) {
+        els.summary.textContent =
+          total === tools.length
+            ? `Showing all ${total.toLocaleString()} tools`
+            : `Showing ${rangeStart.toLocaleString()}–${rangeEnd.toLocaleString()} of ${total.toLocaleString()} matching tools`;
+      }
 
-      els.paginationInfo.textContent = total === 0
-        ? "No results"
-        : `Page ${state.page} of ${totalPages} · ${total.toLocaleString()} results`;
+      if (els.paginationInfo) {
+        els.paginationInfo.textContent =
+          total === 0
+            ? "No results"
+            : `Page ${state.page} of ${totalPages} · ${total.toLocaleString()} results`;
+      }
 
       buildActiveFilters();
       buildPagination(totalPages);
     }
 
-    async function handleSearch() {
+    function handleSearch() {
+      if (!els.search) return;
+
       const query = els.search.value.trim();
       state.query = query;
       state.page = 1;
 
       if (!query) {
         state.searchHandles = null;
-        if (els.pagefindStatus) els.pagefindStatus.hidden = true;
         render();
         return;
       }
 
-      const pagefindMatches = await runPagefindSearch(query);
-      state.searchHandles = pagefindMatches || getLocalSearchMatches(query);
+      state.searchHandles = getLocalSearchMatches(query);
       render();
     }
 
-    els.search.addEventListener("input", () => {
-      clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(handleSearch, 180);
-    });
+    if (els.search) {
+      els.search.addEventListener("input", () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(handleSearch, 180);
+      });
+    }
 
-    els.category.addEventListener("change", () => {
-      state.category = els.category.value;
-      state.page = 1;
-      render();
-    });
+    if (els.category) {
+      els.category.addEventListener("change", () => {
+        state.category = els.category.value;
+        state.page = 1;
+        render();
+      });
+    }
 
-    els.pricing.addEventListener("change", () => {
-      state.pricing = els.pricing.value;
-      state.page = 1;
-      render();
-    });
+    if (els.pricing) {
+      els.pricing.addEventListener("change", () => {
+        state.pricing = els.pricing.value;
+        state.page = 1;
+        render();
+      });
+    }
 
-    els.sort.addEventListener("change", () => {
-      state.sort = els.sort.value;
-      state.page = 1;
-      render();
-    });
+    if (els.sort) {
+      els.sort.addEventListener("change", () => {
+        state.sort = els.sort.value;
+        state.page = 1;
+        render();
+      });
+    }
 
-    els.perPage.addEventListener("change", () => {
-      state.perPage = Number(els.perPage.value);
-      state.page = 1;
-      render();
-    });
+    if (els.perPage) {
+      els.perPage.addEventListener("change", () => {
+        state.perPage = Number(els.perPage.value);
+        state.page = 1;
+        render();
+      });
+    }
 
-    els.reset.addEventListener("click", () => {
-      state.query = "";
-      state.category = "all";
-      state.pricing = "all";
-      state.sort = "relevance";
-      state.perPage = 36;
-      state.page = 1;
-      state.searchHandles = null;
+    if (els.reset) {
+      els.reset.addEventListener("click", () => {
+        state.query = "";
+        state.category = "all";
+        state.pricing = "all";
+        state.sort = "relevance";
+        state.perPage = 36;
+        state.page = 1;
+        state.searchHandles = null;
 
-      els.search.value = "";
-      els.category.value = "all";
-      els.pricing.value = "all";
-      els.sort.value = "relevance";
-      els.perPage.value = "36";
+        if (els.search) els.search.value = "";
+        if (els.category) els.category.value = "all";
+        if (els.pricing) els.pricing.value = "all";
+        if (els.sort) els.sort.value = "relevance";
+        if (els.perPage) els.perPage.value = "36";
 
-      if (els.pagefindStatus) els.pagefindStatus.hidden = true;
-      render();
-    });
+        render();
+      });
+    }
 
     els.pricingChips.forEach((btn) => {
       btn.addEventListener("click", () => {
         state.pricing = btn.getAttribute("data-pricing-chip") || "all";
-        els.pricing.value = state.pricing;
+        if (els.pricing) els.pricing.value = state.pricing;
         state.page = 1;
         render();
       });
@@ -500,7 +497,7 @@ const structuredData = {
     els.categoryChips.forEach((btn) => {
       btn.addEventListener("click", () => {
         state.category = btn.getAttribute("data-category-chip") || "all";
-        els.category.value = state.category;
+        if (els.category) els.category.value = state.category;
         state.page = 1;
         render();
       });

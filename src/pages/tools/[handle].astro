@@ -1,12 +1,15 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import ToolCard from "../../components/cards/ToolCard.astro";
 import Breadcrumbs from "../../components/site/Breadcrumbs.astro";
 import ToolHero from "../../components/site/ToolHero.astro";
 import ToolQuickFacts from "../../components/site/ToolQuickFacts.astro";
+import ToolCard from "../../components/cards/ToolCard.astro";
 import "../../styles/tool-detail.css";
-import toolsRaw from "../../data/tools_enriched.json";
 
+import toolMapRaw from "../../data/build/tool-map.json";
+import relatedMapRaw from "../../data/build/related-map.json";
+
+// types
 type Tool = {
   handle: string;
   name: string;
@@ -14,33 +17,42 @@ type Tool = {
   short?: string;
   desc?: string;
   cat?: string;
+  catSlug?: string;
   pricing?: string;
   tags?: string[];
   e?: string;
 };
 
+const toolMap = toolMapRaw as Record<string, Tool>;
+const relatedMap = relatedMapRaw as Record<string, string[]>;
+
 const slugify = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-const tools = toolsRaw as Tool[];
-
+// Astro behandelt getStaticPaths in eigen scope.
+// Daarom importeren we de paths HIER opnieuw.
 export async function getStaticPaths() {
-  const toolsModule = await import("../../data/tools_enriched.json");
-  const tools = toolsModule.default as Tool[];
+  const toolPathsModule = await import("../../data/build/tool-paths.json");
+  const toolPaths = toolPathsModule.default as string[];
 
-  return tools
-    .filter((tool) => tool.handle)
-    .map((tool) => ({
-      params: { handle: tool.handle },
-      props: { tool }
-    }));
+  return toolPaths.map((handle) => ({
+    params: { handle }
+  }));
 }
 
-const { tool } = Astro.props as { tool: Tool };
+const { handle } = Astro.params as { handle: string };
 
-const relatedTools = tools
-  .filter((t) => t.handle !== tool.handle && t.cat === tool.cat)
-  .slice(0, 6);
+if (!handle || !toolMap[handle]) {
+  throw new Error(`Tool not found for handle: ${handle}`);
+}
+
+const tool = toolMap[handle];
+const categorySlug = tool.catSlug || (tool.cat ? slugify(tool.cat) : undefined);
+
+const relatedHandles = relatedMap[handle] || [];
+const relatedTools = relatedHandles
+  .map((relatedHandle) => toolMap[relatedHandle])
+  .filter(Boolean) as Tool[];
 
 const pageTitle = `${tool.name} — AI Tool Review & Overview`;
 const pageDescription =
@@ -67,8 +79,8 @@ const structuredData = {
 const breadcrumbItems = [
   { label: "Home", href: "/" },
   { label: "Tools", href: "/tools" },
-  ...(tool.cat
-    ? [{ label: tool.cat, href: `/tools/category/${slugify(tool.cat)}` }]
+  ...(tool.cat && categorySlug
+    ? [{ label: tool.cat, href: `/tools/category/${categorySlug}` }]
     : []),
   { label: tool.name }
 ];
@@ -87,7 +99,10 @@ const breadcrumbItems = [
       <Breadcrumbs items={breadcrumbItems} />
 
       <div class="tool-detail-layout">
-        <ToolHero tool={tool} categoryHref={tool.cat ? `/tools/category/${slugify(tool.cat)}` : undefined} />
+        <ToolHero
+          tool={tool}
+          categoryHref={categorySlug ? `/tools/category/${categorySlug}` : undefined}
+        />
         <ToolQuickFacts tool={tool} />
       </div>
     </div>
@@ -114,7 +129,7 @@ const breadcrumbItems = [
           category.
         </p>
         <p>
-          Compare it with similar tools below, or browse the full category page to find alternatives.
+          Browse the category page to compare alternatives, or continue exploring similar tools below.
         </p>
       </div>
     </div>
@@ -129,8 +144,11 @@ const breadcrumbItems = [
             <p>More tools in the same category.</p>
           </div>
 
-          {tool.cat && (
-            <a href={`/tools/category/${slugify(tool.cat)}`} class="section-link">
+          {tool.cat && categorySlug && (
+            <a
+              href={`/tools/category/${categorySlug}`}
+              class="section-link"
+            >
               View category
             </a>
           )}

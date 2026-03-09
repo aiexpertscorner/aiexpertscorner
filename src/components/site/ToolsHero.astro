@@ -1,67 +1,58 @@
 ---
-type Tool = {
-  handle: string;
-  name: string;
-  url: string;
-  short?: string;
-  desc?: string;
-  cat?: string;
-  pricing?: string;
-  tags?: string[];
-  e?: string;
-};
-
 interface Props {
-  tool: Tool;
-  categoryHref?: string;
+  totalTools: number;
+  categoryCount: number;
+  freeCount: number;
+  freemiumCount: number;
 }
 
-const { tool, categoryHref } = Astro.props;
-
-const pricingLabel = tool.pricing || "Unknown";
-const pricingClass =
-  pricingLabel.toLowerCase() === "free"
-    ? "badge--free"
-    : pricingLabel.toLowerCase() === "freemium"
-    ? "badge--freemium"
-    : pricingLabel.toLowerCase() === "paid"
-    ? "badge--paid"
-    : "badge--tag";
+const { totalTools, categoryCount, freeCount, freemiumCount } = Astro.props;
 ---
 
-<div class="tool-hero-card">
-  <div class="tool-hero-card__icon">{tool.e || "✦"}</div>
+<section class="tools-hero section">
+  <div class="container">
+    <div class="tools-hero__panel">
+      <div class="tools-hero__eyebrow">AI Tools Directory</div>
 
-  <div class="tool-hero-card__content">
-    <p class="tool-hero-card__eyebrow">{tool.cat || "AI Tool"}</p>
-    <h1>{tool.name}</h1>
-    <p class="tool-hero-card__lead">{tool.short || tool.desc}</p>
+      <h1>
+        Search, filter and compare <span>{totalTools.toLocaleString()} AI tools</span>
+      </h1>
 
-    <div class="badges">
-      <span class={`badge ${pricingClass}`}>{pricingLabel}</span>
+      <p>
+        The main discovery page for AI Experts Corner. Find tools by category, pricing and use case,
+        then click through to tool pages, alternatives and comparisons.
+      </p>
 
-      {tool.cat && <span class="badge badge--tag">{tool.cat}</span>}
+      <div class="tools-search">
+        <span class="tools-search__icon">⌕</span>
+        <input
+          id="tools-search-input"
+          type="search"
+          placeholder={`Search ${totalTools.toLocaleString()} AI tools...`}
+          autocomplete="off"
+          aria-label="Search AI tools"
+        />
+        <span class="tools-search__kbd">Live</span>
+      </div>
 
-      {tool.tags?.slice(0, 4).map((tag) => (
-        <span class="badge badge--tag">{tag}</span>
-      ))}
-    </div>
-
-    <div class="tool-hero-card__actions">
-      <a
-        href={tool.url}
-        target="_blank"
-        rel="nofollow sponsored noopener"
-        class="btn btn--primary"
-      >
-        Visit Tool
-      </a>
-
-      {categoryHref ? (
-        <a href={categoryHref} class="btn btn--secondary">View Category</a>
-      ) : (
-        <a href="/tools" class="btn btn--secondary">Browse More Tools</a>
-      )}
+      <div class="tools-hero__stats">
+        <div class="tools-hero__stat">
+          <strong>{totalTools.toLocaleString()}</strong>
+          <span>Tools</span>
+        </div>
+        <div class="tools-hero__stat">
+          <strong>{categoryCount}</strong>
+          <span>Categories</span>
+        </div>
+        <div class="tools-hero__stat">
+          <strong>{freeCount.toLocaleString()}</strong>
+          <span>Free</span>
+        </div>
+        <div class="tools-hero__stat">
+          <strong>{freemiumCount.toLocaleString()}</strong>
+          <span>Freemium</span>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>

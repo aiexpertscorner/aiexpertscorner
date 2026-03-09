@@ -4,7 +4,9 @@ import ToolCard from "../../../components/cards/ToolCard.astro";
 import Breadcrumbs from "../../../components/site/Breadcrumbs.astro";
 import CategoryHero from "../../../components/site/CategoryHero.astro";
 import "../../../styles/category-detail.css";
-import toolsRaw from "../../../data/tools_enriched.json";
+
+import categoryMapRaw from "../../../data/build/category-map.json";
+import toolMapRaw from "../../../data/build/tool-map.json";
 
 type Tool = {
   handle: string;
@@ -13,44 +15,52 @@ type Tool = {
   short?: string;
   desc?: string;
   cat?: string;
+  catSlug?: string;
   pricing?: string;
   tags?: string[];
   e?: string;
 };
 
-const tools = toolsRaw as Tool[];
+type CategoryEntry = {
+  slug: string;
+  name: string;
+  toolHandles: string[];
+  toolCount?: number;
+};
 
-const slugify = (value: string) =>
-  value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const categoryMap = categoryMapRaw as Record<string, CategoryEntry>;
+const toolMap = toolMapRaw as Record<string, Tool>;
 
 export async function getStaticPaths() {
-  const toolsModule = await import("../../../data/tools_enriched.json");
-  const tools = toolsModule.default as Tool[];
+  const categoryPathsModule = await import("../../../data/build/category-paths.json");
+  const categoryPaths = categoryPathsModule.default as string[];
 
-  const slugify = (value: string) =>
-    value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
-  const categories = [...new Set(tools.map((t) => t.cat).filter(Boolean) as string[])];
-
-  return categories.map((category) => ({
-    params: { slug: slugify(category) },
-    props: { category }
+  return categoryPaths.map((slug) => ({
+    params: { slug }
   }));
 }
 
-const { category } = Astro.props as { category: string };
+const { slug } = Astro.params as { slug: string };
 
-const categoryTools = tools.filter((tool) => tool.cat === category);
+if (!slug || !categoryMap[slug]) {
+  throw new Error(`Category not found for slug: ${slug}`);
+}
 
-const pageTitle = `${category} AI Tools — AI Experts Corner`;
-const pageDescription = `Browse ${categoryTools.length.toLocaleString()} ${category} AI tools. Compare tools, pricing and categories in the AI Experts Corner directory.`;
+const category = categoryMap[slug];
+
+const categoryTools = category.toolHandles
+  .map((handle) => toolMap[handle])
+  .filter(Boolean) as Tool[];
+
+const pageTitle = `${category.name} AI Tools — AI Experts Corner`;
+const pageDescription = `Browse ${categoryTools.length.toLocaleString()} ${category.name} AI tools. Compare tools, pricing and categories in the AI Experts Corner directory.`;
 
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
-  name: `${category} AI Tools`,
+  name: `${category.name} AI Tools`,
   description: pageDescription,
-  url: `https://aiexpertscorner.com/tools/category/${slugify(category)}`,
+  url: `https://aiexpertscorner.com/tools/category/${slug}`,
   mainEntity: {
     "@type": "ItemList",
     numberOfItems: categoryTools.length
@@ -60,7 +70,7 @@ const structuredData = {
 const breadcrumbItems = [
   { label: "Home", href: "/" },
   { label: "Tools", href: "/tools" },
-  { label: category }
+  { label: category.name }
 ];
 ---
 
@@ -68,14 +78,15 @@ const breadcrumbItems = [
   <Fragment slot="head">
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDescription} />
-    <link rel="canonical" href={`https://aiexpertscorner.com/tools/category/${slugify(category)}`} />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href={`https://aiexpertscorner.com/tools/category/${slug}`} />
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   </Fragment>
 
   <section class="section">
     <div class="container">
       <Breadcrumbs items={breadcrumbItems} />
-      <CategoryHero category={category} toolCount={categoryTools.length} />
+      <CategoryHero category={category.name} toolCount={categoryTools.length} />
     </div>
   </section>
 
@@ -83,9 +94,10 @@ const breadcrumbItems = [
     <div class="container">
       <div class="section-header">
         <div>
-          <h2>{category} tools</h2>
+          <h2>{category.name} tools</h2>
           <p>Explore every tool currently mapped to this category.</p>
         </div>
+
         <a href="/tools" class="section-link">Back to all tools</a>
       </div>
 
